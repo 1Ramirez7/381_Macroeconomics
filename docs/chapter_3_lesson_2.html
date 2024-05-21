@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.554">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>BYU-Idaho Time Series - Exponential Smoothing (EWMA)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./chapter_3_lesson_3.html" rel="next">
+<link href="./chapter_3_lesson_1.html" rel="prev">
+<link href="./images/TSFavicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
+
+<link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    <img src="./images/TSfavicon_inv.png" alt="" class="navbar-logo">
+    </a>
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">BYU-Idaho Time Series</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Table of Contents</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./resource_blog.html"> 
+<span class="menu-text">Resources</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-1" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 1</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-1">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1_lesson_1.html">
+ <span class="dropdown-text">Course Introduction</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1_lesson_2.html">
+ <span class="dropdown-text">Plots Trends, and Seasonal Variation</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 3</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1_lesson_3.html">
+ <span class="dropdown-text">Averages for Time Series</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 4</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1_lesson_4.html">
+ <span class="dropdown-text">Additive Models</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 5</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_1_lesson_5.html">
+ <span class="dropdown-text">Multiplicative Models</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 2</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-2">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_2.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_2_lesson_1.html">
+ <span class="dropdown-text">Covariance and Correlation</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_2_lesson_2.html">
+ <span class="dropdown-text">Autocorrelation Concepts</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 3</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_2_lesson_3.html">
+ <span class="dropdown-text">Exploration of Autocorrelation Concepts</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-3" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 3</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-3">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3_lesson_1.html">
+ <span class="dropdown-text">Leading Variables and Associated Variables</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3_lesson_2.html">
+ <span class="dropdown-text">Exponential Smoothing (EWMA)</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 3</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3_lesson_3.html">
+ <span class="dropdown-text">Holt-Winters Method (Additive Models) - Part 1</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 4</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3_lesson_4.html">
+ <span class="dropdown-text">Holt-Winters Method (Additive Models) - Part 2</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 5</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_3_lesson_5.html">
+ <span class="dropdown-text">Holt-Winters Method (Multiplicative Models)</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-4" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 4</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-4">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_4.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_4_lesson_1.html">
+ <span class="dropdown-text">White Noise and Random Walks - Part 1</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_4_lesson_2.html">
+ <span class="dropdown-text">White Noise and Random Walks - Part 2</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 3</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_4_lesson_3.html">
+ <span class="dropdown-text">Autoregressive (AR) Models</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 4</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_4_lesson_4.html">
+ <span class="dropdown-text">Fitted AR Models</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-5" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 5</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-5">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5_lesson_1.html">
+ <span class="dropdown-text">Linear Models, GLS, and Seasonal Indicator Variables</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5_lesson_2.html">
+ <span class="dropdown-text">Harmonic Seasonal Variables - Part 1</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 3</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5_lesson_3.html">
+ <span class="dropdown-text">Harmonic Seasonal Variables - Part 2</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 4</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5_lesson_4.html">
+ <span class="dropdown-text">Transformations and Non-Linear Models</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 5</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_5_lesson_5.html">
+ <span class="dropdown-text">Forecasting, Inverse Transformation, and Bias Correction</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-6" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 6</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-6">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_6.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_6_lesson_1.html">
+ <span class="dropdown-text">Moving Average (MA) Models</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_6_lesson_2.html">
+ <span class="dropdown-text">Autoregressive Moving Average (ARMA) Models</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-chapter-7" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Chapter 7</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-chapter-7">    
+        <li class="dropdown-header">Overview</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_7.html">
+ <span class="dropdown-text">Lessons &amp; Homework</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 1</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_7_lesson_1.html">
+ <span class="dropdown-text">Introduction to Non-stationary Models and Differencing</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_7_lesson_2.html">
+ <span class="dropdown-text">Seasonal ARIMA Models</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Lesson 2</li>
+        <li>
+    <a class="dropdown-item" href="./chapter_7_lesson_3.html">
+ <span class="dropdown-text">ARCH and GARCH Models</span></a>
+  </li>  
+    </ul>
+  </li>
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-new-sequence" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">New Sequence</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-new-sequence">    
+        <li class="dropdown-header">Chapter 1</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_1_New.html">
+ <span class="dropdown-text">Time Series Components</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 2</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_2_New.html">
+ <span class="dropdown-text">Sample Statistics and Correlation</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 3</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_3_New.html">
+ <span class="dropdown-text">Time Series Components</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 4</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_4_New.html">
+ <span class="dropdown-text">Trends</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 5</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_5_New.html">
+ <span class="dropdown-text">Seasonality</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 6</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_6_New.html">
+ <span class="dropdown-text">Stationary Stochastic Processes</span></a>
+  </li>  
+        <li><hr class="dropdown-divider"></li>
+        <li class="dropdown-header">Chapter 7</li>
+        <li>
+    <a class="dropdown-item" href="./NewSequence/Chapter_7_New.html">
+ <span class="dropdown-text">Non Stationary Stochastic Processes</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+          <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#learning-outcomes" id="toc-learning-outcomes" class="nav-link active" data-scroll-target="#learning-outcomes">Learning Outcomes</a></li>
+  <li><a href="#preparation" id="toc-preparation" class="nav-link" data-scroll-target="#preparation">Preparation</a></li>
+  <li><a href="#learning-journal-exchange-10-min" id="toc-learning-journal-exchange-10-min" class="nav-link" data-scroll-target="#learning-journal-exchange-10-min">Learning Journal Exchange (10 min)</a></li>
+  <li><a href="#class-discussion-theory-supporting-the-ewma" id="toc-class-discussion-theory-supporting-the-ewma" class="nav-link" data-scroll-target="#class-discussion-theory-supporting-the-ewma">Class Discussion: Theory Supporting the EWMA</a></li>
+  <li><a href="#class-activity-practice-applying-the-ewma-20-min" id="toc-class-activity-practice-applying-the-ewma-20-min" class="nav-link" data-scroll-target="#class-activity-practice-applying-the-ewma-20-min">Class Activity: Practice Applying the EWMA (20 min)</a>
+  <ul class="collapse">
+  <li><a href="#one-step-ahead-prediction-errors" id="toc-one-step-ahead-prediction-errors" class="nav-link" data-scroll-target="#one-step-ahead-prediction-errors">One-Step-Ahead Prediction Errors</a></li>
+  </ul></li>
+  <li><a href="#class-activity-highway-speeds-in-new-york-city-15-min" id="toc-class-activity-highway-speeds-in-new-york-city-15-min" class="nav-link" data-scroll-target="#class-activity-highway-speeds-in-new-york-city-15-min">Class Activity: Highway Speeds in New York City (15 min)</a></li>
+  <li><a href="#class-activity-ewma-in-r-10-min" id="toc-class-activity-ewma-in-r-10-min" class="nav-link" data-scroll-target="#class-activity-ewma-in-r-10-min">Class Activity: EWMA in R (10 min)</a></li>
+  <li><a href="#homework-preview-5-min" id="toc-homework-preview-5-min" class="nav-link" data-scroll-target="#homework-preview-5-min">Homework Preview (5 min)</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./chapter_3_lesson_2.html">Lesson 2</a></li><li class="breadcrumb-item"><a href="./chapter_3_lesson_2.html">Exponential Smoothing (EWMA)</a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title">Exponential Smoothing (EWMA)</h1>
+<p class="subtitle lead">Chapter 3: Lesson 2</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- Eliminate functions and show folded code for the students. -->
+<!-- Eliminate functions and show folded code for the students. -->
+<!-- Eliminate functions and show folded code for the students. -->
+<!-- Eliminate functions and show folded code for the students. -->
+<!-- Eliminate functions and show folded code for the students. -->
+<!-- Eliminate functions and show folded code for the students. -->
+<script type="text/javascript">
+ function showhide(id) {
+    var e = document.getElementById(id);
+    e.style.display = (e.style.display == 'block') ? 'none' : 'block';
+ }
+ 
+ function openTab(evt, tabName) {
+    var i, tabcontent, tablinks;
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+    }
+    tablinks = document.getElementsByClassName("tablinks");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+    document.getElementById(tabName).style.display = "block";
+    evt.currentTarget.className += " active";
+ }    
+</script>
+<section id="learning-outcomes" class="level2">
+<h2 class="anchored" data-anchor-id="learning-outcomes">Learning Outcomes</h2>
+<details>
+<summary>
+Implement simple exponential smoothing to estimate local mean levels
+</summary>
+<ul>
+<li>Explain forecasting by extrapolation</li>
+<li>State the assumptions of exponential smoothing</li>
+<li>Define exponential weighted moving average (EWMA)</li>
+<li>State the exponential smoothing forecasting equation</li>
+<li>State the EWMA in geometric series form (in terms of x_t only Eq 3.18)</li>
+<li>Explain the EWMA intuitively</li>
+<li>Define the one-step-ahead prediction error (1PE)</li>
+<li>State the SS1PE used to estimate the smoothing parameter of a EWMA</li>
+<li>Indicate when the EWMA smoothing parameter is optimally set as 1/n</li>
+</ul>
+</details>
+</section>
+<section id="preparation" class="level2">
+<h2 class="anchored" data-anchor-id="preparation">Preparation</h2>
+<ul>
+<li>Read Section 3.4.1</li>
+</ul>
+</section>
+<section id="learning-journal-exchange-10-min" class="level2">
+<h2 class="anchored" data-anchor-id="learning-journal-exchange-10-min">Learning Journal Exchange (10 min)</h2>
+<ul>
+<li><p>Review another student’s journal</p></li>
+<li><p>What would you add to your learning journal after reading another student’s?</p></li>
+<li><p>What would you recommend the other student add to their learning journal?</p></li>
+<li><p>Sign the Learning Journal review sheet for your peer</p></li>
+</ul>
+</section>
+<section id="class-discussion-theory-supporting-the-ewma" class="level2">
+<h2 class="anchored" data-anchor-id="class-discussion-theory-supporting-the-ewma">Class Discussion: Theory Supporting the EWMA</h2>
+<p>Our objective is to predict a future value given the first <span class="math inline">\(n\)</span> observations of a time series. One example would be to forecast sales of an existing product in a stable market.</p>
+<p>We assume the following about the time series:</p>
+<ul>
+<li><p>There is no systematic trend or seasonal effects (or that these have been removed).</p></li>
+<li><p>The mean is non-stationary (can change), but we have no idea about the direction.</p></li>
+</ul>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Match the following definitions to the appropriate term.</p>
+<div style="display: flex;">
+<div>
+<ol type="1">
+<li>A future observation of a time series</li>
+<li>Model assumed in EWMA agorithm</li>
+<li>Non-stationary mean</li>
+<li>Random correlated error terms</li>
+<li>A fixed constant between 0 and 1</li>
+</ol>
+</div>
+<div>
+<ol type="A">
+<li><span class="math inline">\(\alpha\)</span></li>
+<li><span class="math inline">\(\mu_t\)</span></li>
+<li><span class="math inline">\(w_t\)</span></li>
+<li><span class="math inline">\(x_{n+k}\)</span></li>
+<li><span class="math inline">\(x_t = \mu_t + w_t\)</span></li>
+</ol>
+</div>
+</div>
+</div>
+</div>
+<p>The idea is that we will use past observations to predict future observations. Our best prediction of future observations under this model is the mean of the estimate at the time of the last observation. In symbols, if we want to predict the value of the time series at time <span class="math inline">\(n+k\)</span>, we use our estimate of the time series at time <span class="math inline">\(n\)</span>:</p>
+<p><span class="math display">\[
+\hat x_{n+k \mid n} = a_n, ~~~~~~~~~~~~~~~~~~\text{where}~~ k = 1, 2, 3, \ldots ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ (3.16)
+\]</span></p>
+<p><a id="ewma">Here</a> are three equivalent expressions that define the EWMA estimation technique:</p>
+<span class="math display">\[\begin{align}
+  a_t &amp;= \alpha x_t + (1-\alpha) a_{t-1} &amp; (3.15) \\
+  a_t &amp;= \alpha (x_t - a_{t-1} ) + a_{t-1} &amp; (3.17) \\
+  a_t &amp;= \alpha x_t + \alpha(1-\alpha) x_{t-1} + \alpha(1-\alpha)^2 x_{t-2} + \alpha(1-\alpha)^3 x_{t-3} + \cdots &amp; (3.18)
+\end{align}\]</span>
+<p>We assume that <span class="math inline">\(a_1 = x_1\)</span>.</p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>What happens if <span class="math inline">\(\alpha\)</span> is close to 1?</li>
+<li>What happens if <span class="math inline">\(\alpha\)</span> is close to 0?</li>
+<li>What is a common “compromise” value for <span class="math inline">\(\alpha\)</span>?</li>
+<li>Show that Equation (3.15) and (3.17) are equivalent.</li>
+<li>How would you show that Equation (3.18) is equivalent to Equation (3.17)?</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="class-activity-practice-applying-the-ewma-20-min" class="level2">
+<h2 class="anchored" data-anchor-id="class-activity-practice-applying-the-ewma-20-min">Class Activity: Practice Applying the EWMA (20 min)</h2>
+<p>We will use the following data to practice applying the Exponentially Weighted Moving Average (EWMA) technique. Use <span class="math inline">\(\alpha = 0.2\)</span>.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>x &lt;- c( 4.4, 4.2, 4.2, 4, 4.4, 4.7, 4.9, 5.3, 5.4, 5.5 )</code></pre>
+</div>
+</div>
+<p>Start filling <a href="#tbl-at-et" class="quarto-xref">Table&nbsp;1</a> by calculating the values of <span class="math inline">\(a_t\)</span> for each value of <span class="math inline">\(x_t\)</span>.</p>
+<div class="cell">
+<div id="tbl-at-et" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-at-et-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: Calculation of <span class="math inline">\(a_t\)</span> and <span class="math inline">\(e_t\)</span> for a sample time series
+</figcaption>
+<div aria-describedby="tbl-at-et-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$x_t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$e_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.5in;">1</td>
+<td style="text-align: center; min-width: 0.5in;">4.4</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.5in;">2</td>
+<td style="text-align: center; min-width: 0.5in;">4.2</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.5in;">3</td>
+<td style="text-align: center; min-width: 0.5in;">4.2</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.5in;">4</td>
+<td style="text-align: center; min-width: 0.5in;">4</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.5in;">5</td>
+<td style="text-align: center; min-width: 0.5in;">4.4</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.5in;">6</td>
+<td style="text-align: center; min-width: 0.5in;">4.7</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.5in;">7</td>
+<td style="text-align: center; min-width: 0.5in;">4.9</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.5in;">8</td>
+<td style="text-align: center; min-width: 0.5in;">5.3</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.5in;">9</td>
+<td style="text-align: center; min-width: 0.5in;">5.4</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.5in;">10</td>
+<td style="text-align: center; min-width: 0.5in;">5.5</td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+<td style="text-align: center; min-width: 0.5in; min-width: 2.25in;"></td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<section id="one-step-ahead-prediction-errors" class="level3">
+<h3 class="anchored" data-anchor-id="one-step-ahead-prediction-errors">One-Step-Ahead Prediction Errors</h3>
+<section id="definition" class="level4">
+<h4 class="anchored" data-anchor-id="definition">Definition</h4>
+<p>If we have a time series <span class="math inline">\(\{x_1, x_2, \ldots, x_n\}\)</span> and start with <span class="math inline">\(a_1 = x_1\)</span>, we can compute the value of <span class="math inline">\(a_t\)</span> if <span class="math inline">\(2 \le t \le n\)</span>. We define the one-step-ahead prediction error, <span class="math inline">\(e_t\)</span> as</p>
+<p><span class="math display">\[
+  e_t = x_t - \hat x_{t|t-1} = x_t - a_{t-1}
+\]</span></p>
+</section>
+<section id="calculation-of-alpha-in-r" class="level4">
+<h4 class="anchored" data-anchor-id="calculation-of-alpha-in-r">Calculation of <span class="math inline">\(\alpha\)</span> in R</h4>
+<p>R uses the one-step-ahead prediction error to estimate <span class="math inline">\(\alpha\)</span>. It chooses <span class="math inline">\(\alpha\)</span> to minimize</p>
+<p><span class="math display">\[
+  SS1PE = \sum_{t=2}^n e_t^2 = e_2^2 + e_3^2 + e_4^2 + \cdots + e_n^2
+\]</span></p>
+<p>where <span class="math inline">\(a_1 = x_1\)</span>.</p>
+<p>If the mean of a long time series has not changed much, then this will produce a value of <span class="math inline">\(\alpha\)</span> that is unduly small. A small value of <span class="math inline">\(\alpha\)</span> prevents the model from responding to rapid future changes in the time series.</p>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>If the mean of the process does not change much, what is the optimal value of <span class="math inline">\(\alpha\)</span>?</li>
+</ul>
+<!-- Answer: $\frac{1}{n}$ -->
+</div>
+</div>
+</section>
+<section id="computation-of-the-one-step-ahead-prediction-errors" class="level4">
+<h4 class="anchored" data-anchor-id="computation-of-the-one-step-ahead-prediction-errors">Computation of the One-Step-Ahead Prediction Errors</h4>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Compute <span class="math inline">\(e_t\)</span> for the 10 values of <span class="math inline">\(x\)</span> given in the table above. Add these values to the table.</li>
+<li>Compute <em>SS1PE</em> for these data.</li>
+</ul>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="class-activity-highway-speeds-in-new-york-city-15-min" class="level2">
+<h2 class="anchored" data-anchor-id="class-activity-highway-speeds-in-new-york-city-15-min">Class Activity: Highway Speeds in New York City (15 min)</h2>
+<div class="columns">
+<div class="column" style="width:45%;">
+<!-- <a id="Bruckner">The</a>  -->
+<p>The Bruckner Expressway (I-278) cuts through the Bronx in New York City. Traffic sensors record the speed of cars every 5 minutes between Stratford Avenue and Castle Hill Avenue.</p>
+<p>The data from 7/2/2022 through 7/17/2022 are contained in the file <a href="https://byuistats.github.io/timeseries/data/ny_speeds.csv" download="">ny_speeds.csv</a>. (Source: City of New York Department of Transportation. Online Links: <a href="https://data.beta.nyc/dataset/nyc-real-time-traffic-speed-data-feed-archived">http://a841‐dotweb01.nyc.gov/datafeeds</a>.) These data have been cleaned to align the observations with five minute intervals.</p>
+<p>We will read these data into a tsibble.</p>
+</div><div class="column" style="width:10%;">
+<!-- empty column to create gap -->
+</div><div class="column" style="width:45%;">
+<div id="fig-map" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="images/ny_speed_google_map_small.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-map-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Google Map showing the location of the data collection.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read the ny_speeds data</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ny_speeds_dat <span class="ot">&lt;-</span> rio<span class="sc">::</span><span class="fu">import</span>(<span class="st">"https://byuistats.github.io/timeseries/data/ny_speeds.csv"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>ny_speeds_tb <span class="ot">&lt;-</span> ny_speeds_dat <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> lubridate<span class="sc">::</span><span class="fu">year</span>(date),</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">month =</span> lubridate<span class="sc">::</span><span class="fu">month</span>(date),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">day =</span> lubridate<span class="sc">::</span><span class="fu">day</span>(date),</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">hour =</span> lubridate<span class="sc">::</span><span class="fu">hour</span>(date),</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">min =</span> lubridate<span class="sc">::</span><span class="fu">minute</span>(date)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">speed =</span> Speed) <span class="sc">|&gt;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(date, year, month, day, hour, min, speed) <span class="sc">|&gt;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>()</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>ny_speeds_ts <span class="ot">&lt;-</span> ny_speeds_tb <span class="sc">|&gt;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">index =</span> date) <span class="sc">|&gt;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tsibble</span>(<span class="at">index =</span> index)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Here are the first few lines of the tsibble:</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code># A tsibble: 10 x 8 [5m] &lt;UTC&gt;
+   date                 year month   day  hour   min speed index              
+   &lt;dttm&gt;              &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dttm&gt;             
+ 1 2022-07-02 00:00:00  2022     7     2     0     0  52.2 2022-07-02 00:00:00
+ 2 2022-07-02 00:05:00  2022     7     2     0     5  53.4 2022-07-02 00:05:00
+ 3 2022-07-02 00:10:00  2022     7     2     0    10  55.9 2022-07-02 00:10:00
+ 4 2022-07-02 00:15:00  2022     7     2     0    15  56.5 2022-07-02 00:15:00
+ 5 2022-07-02 00:20:00  2022     7     2     0    20  56.5 2022-07-02 00:20:00
+ 6 2022-07-02 00:25:00  2022     7     2     0    25  53.4 2022-07-02 00:25:00
+ 7 2022-07-02 00:30:00  2022     7     2     0    30  55.9 2022-07-02 00:30:00
+ 8 2022-07-02 00:35:00  2022     7     2     0    35  54.7 2022-07-02 00:35:00
+ 9 2022-07-02 00:40:00  2022     7     2     0    40  53.4 2022-07-02 00:40:00
+10 2022-07-02 00:45:00  2022     7     2     0    45  54.0 2022-07-02 00:45:00</code></pre>
+</div>
+</div>
+<p>Here is a time plot of the data:</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(ny_speeds_ts, <span class="at">.vars =</span> speed) <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Date / Time"</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Traffic Speed (mph)"</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Bruckner Expressway Traffic Speed"</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">hjust =</span> <span class="fl">0.5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-speed-ts-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-ts-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-ts-plot-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-ts-plot-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: Time series plot of the traffic speed data from July 2 through July 17, 2022
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The data set spans 16 days. There is a strong daily pattern, which can be seen by the 16 pairs of peaks and valleys. It might be easier to see if we look at the observations from the first 2 days.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-ts-plot-two-days" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-ts-plot-two-days-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-ts-plot-two-days-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-ts-plot-two-days-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Time series plot of the first two days of the traffic speed data
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>What do you no notice about this time series?</li>
+<li>During what parts of the day does the traffic flow tend to be slowest? fastest? What is the reason for this behavior?</li>
+</ul>
+</div>
+</div>
+<p>Next, we compute the decomposition. We expect that that traffic will fluctuate with daily seasonality. The number of five-minute periods in a day is:</p>
+<p><span class="math display">\[
+\underbrace{\frac{60}{5}}_{\substack{\text{Number of} \\ \text{5-minute periods} \\ \text{per hour}}} \cdot \underbrace{24}_{\substack{\text{Number of} \\ \text{hours} \\ \text{per day}}} = ~~ 288~~\text{five-minute periods per day}
+\]</span></p>
+<p>That is, the time series will follow a cycle that repeats every 288 five-minute intervals. Due to the complexity of the time series, we will indicate this to R in our function call. (Try replacing “speed ~ season(288)” in the classical_decomposition command with “speed” and see what happens!)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>ny_speeds_decompose <span class="ot">&lt;-</span> ny_speeds_ts <span class="sc">|&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">model</span>(feasts<span class="sc">::</span><span class="fu">classical_decomposition</span>(speed <span class="sc">~</span> <span class="fu">season</span>(<span class="dv">288</span>),</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="at">type =</span> <span class="st">"add"</span>))  <span class="sc">|&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">components</span>()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="fu">autoplot</span>(ny_speeds_decompose)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div id="fig-speed-decomposition" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-decomposition-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-decomposition-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-decomposition-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Additive decomposition of the traffic speed time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Working with your partner, identify evidence of the daily seasonal component of the speed data.</li>
+<li>How do you explain the sharp downward spikes in the data?</li>
+<li>Does there seem to be a trend in the data? Justify your answer.</li>
+<li>Why is there no estimate for the trend or the random component for the first half of the first day and the last half of the last day?</li>
+</ul>
+</div>
+</div>
+<p>Here is a plot of the decomposition for the first 4 days of the time series (July 2, 2022 at 0:00 to July 6, 2022 at 0:00).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ny_speeds_decompose <span class="sc">|&gt;</span> </span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>((index) <span class="sc">&lt;=</span> <span class="fu">mdy_hm</span>(<span class="st">"7/6/2022 0:00"</span>)) <span class="sc">|&gt;</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">autoplot</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div id="fig-speed-decomposition_four-days" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-decomposition_four-days-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-decomposition_four-days-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-decomposition_four-days-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Additive decomposition of the first four days of the traffic speed time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Consider the seasonal variation. Around what time of day are the speeds highest? When are the speeds lowest?</li>
+</ul>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Applying the EWMA when there is a trend and/or seasonal variation
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>One assumption for the EWMA is that there is no trend or seasonal variation. If present, we need to eliminate the trend and seasonal variation before applying the EWMA algorithm. In this case, we decompose the time series and compute the EWMA for the random component. Finally, we add the trend and seasonal components back in to get the EWMA estimate for the time series.</p>
+</div>
+</div>
+<p>These data demonstrate distinct seasonal variation. We will need to apply the EWMA algorithm to the random component and later add the seasonal component and trend to our EWMA estimate.</p>
+<p>We demonstrate the computation of the EWMA for a few choices of <span class="math inline">\(\alpha\)</span>.</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true">EWMA with <span class="math inline">\(\alpha = 0.01\)</span></a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false">EWMA with <span class="math inline">\(\alpha = 0.05\)</span></a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" role="tab" aria-controls="tabset-1-3" aria-selected="false">EWMA with <span class="math inline">\(\alpha = 0.2\)</span></a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-4" role="tab" aria-controls="tabset-1-4" aria-selected="false">EWMA with <span class="math inline">\(\alpha = 0.75\)</span></a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-1-1-tab">
+<div class="callout callout-style-default callout-note no-icon callout-titled" title="EWMA">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+EWMA
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="cell">
+<div id="tbl-speed-random-ewma-alpha1" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-speed-random-ewma-alpha1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Illustration of the computation of the EWMA
+</figcaption>
+<div aria-describedby="tbl-speed-random-ewma-alpha1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">Date-Time</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Random $$ \hat z_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Computation of $$ a_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:00</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+<td style="text-align: center; min-width: 0in;">-18.258 =</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:05</td>
+<td style="text-align: center; min-width: 0in;">-17.597</td>
+<td style="text-align: center; min-width: 0in;">0.01 * (-17.597) + (1 - 0.01) * (-18.258) =</td>
+<td style="text-align: center; min-width: 0in;">-18.251</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:10</td>
+<td style="text-align: center; min-width: 0in;">-17.095</td>
+<td style="text-align: center; min-width: 0in;">0.01 * (-17.095) + (1 - 0.01) * (-18.251) =</td>
+<td style="text-align: center; min-width: 0in;">-18.24</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:15</td>
+<td style="text-align: center; min-width: 0in;">-16.342</td>
+<td style="text-align: center; min-width: 0in;">0.01 * (-16.342) + (1 - 0.01) * (-18.24) =</td>
+<td style="text-align: center; min-width: 0in;">-18.221</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:20</td>
+<td style="text-align: center; min-width: 0in;">-17.627</td>
+<td style="text-align: center; min-width: 0in;">0.01 * (-17.627) + (1 - 0.01) * (-18.221) =</td>
+<td style="text-align: center; min-width: 0in;">-18.215</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:25</td>
+<td style="text-align: center; min-width: 0in;">-14.03</td>
+<td style="text-align: center; min-width: 0in;">0.01 * (-14.03) + (1 - 0.01) * (-18.215) =</td>
+<td style="text-align: center; min-width: 0in;">-18.173</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Here is a plot showing the EWMA for the random component for all the data.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha1" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha1-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha1-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: EWMA superimposed on the random component of the traffic data time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Here is a plot of the EWMA against the random component for four hours:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha1-partial" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha1-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha1-partial-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha1-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: EWMA superimposed on the random component of the traffic data for a four-hour period
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-2-tab">
+<div class="callout callout-style-default callout-note no-icon callout-titled" title="EWMA">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+EWMA
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="cell">
+<div id="tbl-speed-random-ewma-alpha2" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-speed-random-ewma-alpha2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Illustration of the computation of the EWMA
+</figcaption>
+<div aria-describedby="tbl-speed-random-ewma-alpha2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">Date-Time</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Random $$ \hat z_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Computation of $$ a_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:00</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+<td style="text-align: center; min-width: 0in;">-18.258 =</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:05</td>
+<td style="text-align: center; min-width: 0in;">-17.597</td>
+<td style="text-align: center; min-width: 0in;">0.05 * (-17.597) + (1 - 0.05) * (-18.258) =</td>
+<td style="text-align: center; min-width: 0in;">-18.225</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:10</td>
+<td style="text-align: center; min-width: 0in;">-17.095</td>
+<td style="text-align: center; min-width: 0in;">0.05 * (-17.095) + (1 - 0.05) * (-18.225) =</td>
+<td style="text-align: center; min-width: 0in;">-18.168</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:15</td>
+<td style="text-align: center; min-width: 0in;">-16.342</td>
+<td style="text-align: center; min-width: 0in;">0.05 * (-16.342) + (1 - 0.05) * (-18.168) =</td>
+<td style="text-align: center; min-width: 0in;">-18.077</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:20</td>
+<td style="text-align: center; min-width: 0in;">-17.627</td>
+<td style="text-align: center; min-width: 0in;">0.05 * (-17.627) + (1 - 0.05) * (-18.077) =</td>
+<td style="text-align: center; min-width: 0in;">-18.054</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:25</td>
+<td style="text-align: center; min-width: 0in;">-14.03</td>
+<td style="text-align: center; min-width: 0in;">0.05 * (-14.03) + (1 - 0.05) * (-18.054) =</td>
+<td style="text-align: center; min-width: 0in;">-17.853</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Here is a plot showing the EWMA for the random component for all the data.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha2" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha2-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha2-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: EWMA superimposed on the random component of the traffic data time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Here is a plot of the EWMA against the random component for four hours:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha2-partial" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha2-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha2-partial-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha2-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: EWMA superimposed on the random component of the traffic data for a four-hour period
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-3-tab">
+<div class="callout callout-style-default callout-note no-icon callout-titled" title="EWMA">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+EWMA
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="cell">
+<div id="tbl-speed-random-ewma-alpha3" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-speed-random-ewma-alpha3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: Illustration of the computation of the EWMA
+</figcaption>
+<div aria-describedby="tbl-speed-random-ewma-alpha3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">Date-Time</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Random $$ \hat z_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Computation of $$ a_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:00</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+<td style="text-align: center; min-width: 0in;">-18.258 =</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:05</td>
+<td style="text-align: center; min-width: 0in;">-17.597</td>
+<td style="text-align: center; min-width: 0in;">0.2 * (-17.597) + (1 - 0.2) * (-18.258) =</td>
+<td style="text-align: center; min-width: 0in;">-18.126</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:10</td>
+<td style="text-align: center; min-width: 0in;">-17.095</td>
+<td style="text-align: center; min-width: 0in;">0.2 * (-17.095) + (1 - 0.2) * (-18.126) =</td>
+<td style="text-align: center; min-width: 0in;">-17.919</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:15</td>
+<td style="text-align: center; min-width: 0in;">-16.342</td>
+<td style="text-align: center; min-width: 0in;">0.2 * (-16.342) + (1 - 0.2) * (-17.919) =</td>
+<td style="text-align: center; min-width: 0in;">-17.604</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:20</td>
+<td style="text-align: center; min-width: 0in;">-17.627</td>
+<td style="text-align: center; min-width: 0in;">0.2 * (-17.627) + (1 - 0.2) * (-17.604) =</td>
+<td style="text-align: center; min-width: 0in;">-17.608</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:25</td>
+<td style="text-align: center; min-width: 0in;">-14.03</td>
+<td style="text-align: center; min-width: 0in;">0.2 * (-14.03) + (1 - 0.2) * (-17.608) =</td>
+<td style="text-align: center; min-width: 0in;">-16.893</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Here is a plot showing the EWMA for the random component for all the data.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha3" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha3-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: EWMA superimposed on the random component of the traffic data time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Here is a plot of the EWMA against the random component for four hours:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha3-partial" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha3-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha3-partial-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha3-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11: EWMA superimposed on the random component of the traffic data for a four-hour period
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-4-tab">
+<div class="callout callout-style-default callout-note no-icon callout-titled" title="EWMA">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+EWMA
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<div class="cell">
+<div id="tbl-speed-random-ewma-alpha4" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-speed-random-ewma-alpha4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: Illustration of the computation of the EWMA
+</figcaption>
+<div aria-describedby="tbl-speed-random-ewma-alpha4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">Date-Time</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Random $$ \hat z_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Computation of $$ a_t $$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:00</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+<td style="text-align: center; min-width: 0in;">-18.258 =</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:05</td>
+<td style="text-align: center; min-width: 0in;">-17.597</td>
+<td style="text-align: center; min-width: 0in;">0.75 * (-17.597) + (1 - 0.75) * (-18.258) =</td>
+<td style="text-align: center; min-width: 0in;">-17.762</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:10</td>
+<td style="text-align: center; min-width: 0in;">-17.095</td>
+<td style="text-align: center; min-width: 0in;">0.75 * (-17.095) + (1 - 0.75) * (-17.762) =</td>
+<td style="text-align: center; min-width: 0in;">-17.261</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:15</td>
+<td style="text-align: center; min-width: 0in;">-16.342</td>
+<td style="text-align: center; min-width: 0in;">0.75 * (-16.342) + (1 - 0.75) * (-17.261) =</td>
+<td style="text-align: center; min-width: 0in;">-16.572</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:20</td>
+<td style="text-align: center; min-width: 0in;">-17.627</td>
+<td style="text-align: center; min-width: 0in;">0.75 * (-17.627) + (1 - 0.75) * (-16.572) =</td>
+<td style="text-align: center; min-width: 0in;">-17.363</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">7/2/2022 12:25</td>
+<td style="text-align: center; min-width: 0in;">-14.03</td>
+<td style="text-align: center; min-width: 0in;">0.75 * (-14.03) + (1 - 0.75) * (-17.363) =</td>
+<td style="text-align: center; min-width: 0in;">-14.864</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>Here is a plot showing the EWMA for the random component for all the data.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha4" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha4-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha4-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: EWMA superimposed on the random component of the traffic data time series
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Here is a plot of the EWMA against the random component for four hours:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-alpha4-partial" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-alpha4-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-alpha4-partial-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-alpha4-partial-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: EWMA superimposed on the random component of the traffic data for a four-hour period
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Once we have obtained the EWMA for the random component, we can add to it the trend and seasonality to get the EWMA for the original speed data. The raw data are plotted in black, the trend in blue, the seasonal component in yellow, and the EWMA is plotted in orange. The green curve is the sum of EWMA, the seasonal component, and the trend.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-decomposed-all" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-decomposed-all-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-decomposed-all-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-decomposed-all-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;14: Components of the EWMA superimposed on the random component of the New York traffic data
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>Here is the plot for four hours of data:</p>
+<div class="cell">
+<div class="cell-output-display">
+<div id="fig-speed-random-ewma-decomposed-four-hours" class="quarto-figure quarto-figure-center quarto-float anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-speed-random-ewma-decomposed-four-hours-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="chapter_3_lesson_2_files/figure-html/fig-speed-random-ewma-decomposed-four-hours-1.png" class="img-fluid figure-img" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-speed-random-ewma-decomposed-four-hours-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;15: Components of the EWMA superimposed on the random component of the New York traffic data, four hours only
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="class-activity-ewma-in-r-10-min" class="level2">
+<h2 class="anchored" data-anchor-id="class-activity-ewma-in-r-10-min">Class Activity: EWMA in R (10 min)</h2>
+<p>We will compute the EWMA for the random component of the New York highway speed data in R. We have already decomposed the model, so we have isolated the estimated values for the random component. This is a portion of the tsibble <code>ny_speeds_decompose</code>:</p>
+<div class="cell">
+<div id="tbl-speed-random-EWMA" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-speed-random-EWMA-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: A portion of the tsibble containing the EWMA for the random component of the traffic data
+</figcaption>
+<div aria-describedby="tbl-speed-random-EWMA-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">.model</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">index</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">speed</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">trend</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">seasonal</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">random</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">season_adjust</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02</td>
+<td style="text-align: center; min-width: 0in;">52.19</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">2.557</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">49.633</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 00:05:00</td>
+<td style="text-align: center; min-width: 0in;">53.43</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">2.884</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">50.546</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 00:10:00</td>
+<td style="text-align: center; min-width: 0in;">55.92</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">2.463</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">53.457</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 11:55:00</td>
+<td style="text-align: center; min-width: 0in;">30.44</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">-4.195</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">34.635</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 12:00:00</td>
+<td style="text-align: center; min-width: 0in;">26.71</td>
+<td style="text-align: center; min-width: 0in;">51.969</td>
+<td style="text-align: center; min-width: 0in;">-7.002</td>
+<td style="text-align: center; min-width: 0in;">-18.258</td>
+<td style="text-align: center; min-width: 0in;">33.712</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 12:05:00</td>
+<td style="text-align: center; min-width: 0in;">25.47</td>
+<td style="text-align: center; min-width: 0in;">51.973</td>
+<td style="text-align: center; min-width: 0in;">-8.906</td>
+<td style="text-align: center; min-width: 0in;">-17.597</td>
+<td style="text-align: center; min-width: 0in;">34.376</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-02 12:10:00</td>
+<td style="text-align: center; min-width: 0in;">25.47</td>
+<td style="text-align: center; min-width: 0in;">51.969</td>
+<td style="text-align: center; min-width: 0in;">-9.405</td>
+<td style="text-align: center; min-width: 0in;">-17.095</td>
+<td style="text-align: center; min-width: 0in;">34.875</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 11:45:00</td>
+<td style="text-align: center; min-width: 0in;">53.43</td>
+<td style="text-align: center; min-width: 0in;">54.612</td>
+<td style="text-align: center; min-width: 0in;">-4.153</td>
+<td style="text-align: center; min-width: 0in;">2.971</td>
+<td style="text-align: center; min-width: 0in;">57.583</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 11:50:00</td>
+<td style="text-align: center; min-width: 0in;">54.05</td>
+<td style="text-align: center; min-width: 0in;">54.616</td>
+<td style="text-align: center; min-width: 0in;">-4.485</td>
+<td style="text-align: center; min-width: 0in;">3.918</td>
+<td style="text-align: center; min-width: 0in;">58.535</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 11:55:00</td>
+<td style="text-align: center; min-width: 0in;">53.43</td>
+<td style="text-align: center; min-width: 0in;">54.626</td>
+<td style="text-align: center; min-width: 0in;">-4.195</td>
+<td style="text-align: center; min-width: 0in;">2.999</td>
+<td style="text-align: center; min-width: 0in;">57.625</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 12:00:00</td>
+<td style="text-align: center; min-width: 0in;">50.33</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">-7.002</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">57.332</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+<td style="text-align: center; min-width: 0in;">⋮</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 23:45:00</td>
+<td style="text-align: center; min-width: 0in;">55.3</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">-1.237</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">56.537</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 23:50:00</td>
+<td style="text-align: center; min-width: 0in;">55.92</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">-1.905</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">57.825</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0in;">feasts::classical_decomposition(speed ~ season(288), type = "add")</td>
+<td style="text-align: center; min-width: 0in;">2022-07-17 23:55:00</td>
+<td style="text-align: center; min-width: 0in;">57.16</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">1.528</td>
+<td style="text-align: center; min-width: 0in;">NA</td>
+<td style="text-align: center; min-width: 0in;">55.632</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When applying EWMA to the random component of the time series, delete the variable <code>.model</code> and all <code>NA</code> values from the data frame. If you neglect this step, there will be errors in the code below.</p>
+</div>
+</div>
+<p>We drop the variable <code>.model</code> and omit all NA values. (Remember the first half-day and the last half-day in the time series do not yield estimates for the random component.)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>ny_speeds_random <span class="ot">&lt;-</span> ny_speeds_decompose <span class="sc">|&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">na.omit</span>() <span class="sc">|&gt;</span>                                <span class="co"># Omit all NA values</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>.model)                             <span class="co"># Eliminate the variable .model</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The following code can be used to execute the EWMA algorithm on the random component using <span class="math inline">\(\alpha = 0.2\)</span>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>ny_speeds_model1 <span class="ot">&lt;-</span> ny_speeds_random <span class="sc">|&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">model</span>(<span class="at">Additive =</span> <span class="fu">ETS</span>(random <span class="sc">~</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">trend</span>(<span class="st">"A"</span>, <span class="at">alpha =</span> <span class="fl">0.2</span>, <span class="at">beta =</span> <span class="dv">0</span>) <span class="sc">+</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>                         <span class="fu">error</span>(<span class="st">"A"</span>) <span class="sc">+</span> <span class="fu">season</span>(<span class="st">"N"</span>),</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>                       <span class="at">opt_crit =</span> <span class="st">"amse"</span>, <span class="at">nmse =</span> <span class="dv">1</span>))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">report</span>(ny_speeds_model1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Series: random 
+Model: ETS(A,A,N) 
+  Smoothing parameters:
+    alpha = 0.2 
+    beta  = 0 
+
+  Initial states:
+      l[0]        b[0]
+ -13.52924 0.003643793
+
+  sigma^2:  22.2348
+
+     AIC     AICc      BIC 
+49563.94 49563.94 49583.05 </code></pre>
+</div>
+</div>
+<p>Now, we calculate the value of <em>SS1PE</em>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(<span class="fu">components</span>(ny_speeds_model1)<span class="sc">$</span>remainder<span class="sc">^</span><span class="dv">2</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 95965.59</code></pre>
+</div>
+</div>
+<!-- Here is a plot of the time series with the EWMA superimposed. -->
+<!-- ```{r} -->
+<!-- #| code-fold: true -->
+<!-- #| code-summary: "Show the code" -->
+<!-- augment(ny_speeds_model1) |> -->
+<!--   ggplot(aes(x = index, y = random)) + -->
+<!--   geom_line() + -->
+<!--   geom_line(aes(y = .fitted, color = "Fitted")) + -->
+<!--   labs(color = "") -->
+<!-- ``` -->
+<!-- Fit the model with alpha unspecified -->
+<!-- Check Your Understanding -->
+<div class="callout callout-style-default callout-tip no-icon callout-titled" title="Check Your Understanding">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Check Your Understanding
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li>Modify the code analyzing the New York traffic speed data by deleting the argument <code>alpha = 0.2</code>. <!-- This will allow R to optimize $\alpha$ by minimizing the *SS1PE*. -->
+<ul>
+<li>What value of <span class="math inline">\(\alpha\)</span> is obtained?</li>
+<li>What is the value of the <em>SS1PE</em> for this value of <span class="math inline">\(\alpha\)</span>?</li>
+</ul></li>
+<li>Choose values of <span class="math inline">\(\alpha\)</span> slightly less than and slightly greater than 0.6722.
+<ul>
+<li>Can you find a value of <span class="math inline">\(\alpha\)</span> that gives you a smaller <em>SS1PE</em> than 77661.59?</li>
+</ul></li>
+</ul>
+</div>
+</div>
+</section>
+<section id="homework-preview-5-min" class="level2">
+<h2 class="anchored" data-anchor-id="homework-preview-5-min">Homework Preview (5 min)</h2>
+<ul>
+<li>Review upcoming homework assignment</li>
+<li>Clarify questions</li>
+</ul>
+<div class="callout callout-style-default callout-note no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Download Homework
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://byuistats.github.io/timeseries/homework/homework_3_2.qmd" download="homework_3_2.qmd"> homework_3_2.qmd </a></p>
+</div>
+</div>
+<p><a href="javascript:showhide('Solutions1')" style="font-size:.8em;">Matching Activity</a></p>
+<div id="Solutions1" style="display:none;">
+<p>Solutions to matching activity:</p>
+<ol type="1">
+<li>D</li>
+<li>E</li>
+<li>B</li>
+<li>C</li>
+<li>A</li>
+</ol>
+</div>
+<p><a href="javascript:showhide('Solutions2')" style="font-size:.8em;">Class Activity: Practice Applying the EWMA</a></p>
+<div id="Solutions2" style="display:none;">
+<div class="cell">
+<div id="tbl-at-et-solution" class="cell quarto-float anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-at-et-solution-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: Calculation of <span class="math inline">\(a_t\)</span> and <span class="math inline">\(e_t\)</span> for a sample time series: Solution for <a href="#tbl-at-et" class="quarto-xref">Table&nbsp;1</a>
+</figcaption>
+<div aria-describedby="tbl-at-et-solution-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="cell-output-display">
+<div>
+<table class="table table-striped do-not-create-environment cell table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$x_t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$a_t$$</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">$$e_t$$</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.75in;">$$ 1 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.4 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$4.4$$</td>
+<td style="text-align: center; min-width: 0.75in;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.75in;">$$ 2 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.2 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4.2 + (1 - 0.2 ) \cdot 4.4 = 4.36 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.2 - 4.4 = -0.2 $$</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.75in;">$$ 3 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.2 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4.2 + (1 - 0.2 ) \cdot 4.36 = 4.328 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.2 - 4.36 = -0.16 $$</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.75in;">$$ 4 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4 + (1 - 0.2 ) \cdot 4.328 = 4.262 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4 - 4.328 = -0.328 $$</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.75in;">$$ 5 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.4 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4.4 + (1 - 0.2 ) \cdot 4.262 = 4.29 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.4 - 4.262 = 0.138 $$</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.75in;">$$ 6 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.7 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4.7 + (1 - 0.2 ) \cdot 4.29 = 4.372 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.7 - 4.29 = 0.41 $$</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.75in;">$$ 7 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.9 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 4.9 + (1 - 0.2 ) \cdot 4.372 = 4.478 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 4.9 - 4.372 = 0.528 $$</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.75in;">$$ 8 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.3 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 5.3 + (1 - 0.2 ) \cdot 4.478 = 4.642 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.3 - 4.478 = 0.822 $$</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center; min-width: 0.75in;">$$ 9 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.4 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 5.4 + (1 - 0.2 ) \cdot 4.642 = 4.794 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.4 - 4.642 = 0.758 $$</td>
+</tr>
+<tr class="even">
+<td style="text-align: center; min-width: 0.75in;">$$ 10 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.5 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 0.2 \cdot 5.5 + (1 - 0.2 ) \cdot 4.794 = 4.935 $$</td>
+<td style="text-align: center; min-width: 0.75in;">$$ 5.5 - 4.794 = 0.706 $$</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</div>
+</figure>
+</div>
+</div>
+<p>The value of <em>SS1PE</em> is <span class="math display">\[
+  \sum\limits_{t=2}^n e_t^2
+    = (-0.2)^2 + (-0.16)^2 + \cdots + (0.758)^2 + (0.706)^2
+    = 2.389
+\]</span></p>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./chapter_3_lesson_1.html" class="pagination-link" aria-label="Leading Variables and Associated Variables">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Leading Variables and Associated Variables</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./chapter_3_lesson_3.html" class="pagination-link" aria-label="Holt-Winters Method (Additive Models) - Part 1">
+        <span class="nav-page-text">Holt-Winters Method (Additive Models) - Part 1</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
